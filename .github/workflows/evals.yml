@@ -26,13 +26,13 @@ jobs:
       - id: meta
         env:
           IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          IMAGE_TAG: ${{ env.IMAGE }}:${{ hashFiles('.github/docker/Dockerfile.ci', 'package.json') }}
         run: |
+          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
           if [ "$IS_FORK_PR" = "true" ]; then
-            echo "Fork PR detected — reusing upstream ci:latest because GITHUB_TOKEN cannot push org packages from cross-repo PRs."
-            echo "tag=${{ env.IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+            echo "Fork PR detected — reusing the prebuilt image for the current Dockerfile/package.json hash because GITHUB_TOKEN cannot push org packages from cross-repo PRs."
             echo "push_allowed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=${{ env.IMAGE }}:${{ hashFiles('.github/docker/Dockerfile.ci', 'package.json') }}" >> "$GITHUB_OUTPUT"
             echo "push_allowed=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -92,7 +92,7 @@ jobs:
       - name: Ensure upstream image exists
         run: |
           if ! docker manifest inspect ${{ needs.meta.outputs.image-tag }} > /dev/null 2>&1; then
-            echo "::error::Upstream ci:latest is missing, so this fork PR cannot reuse it. Ask a maintainer to refresh the CI image from a same-repo branch."
+            echo "::error::Required prebuilt CI image for this Dockerfile/package.json hash is missing in GHCR, so this fork PR cannot reuse it. Ask a maintainer to refresh the CI image from a same-repo branch."
             exit 1
           fi
 

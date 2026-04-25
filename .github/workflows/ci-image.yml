@@ -13,6 +13,9 @@ on:
   # Manual trigger
   workflow_dispatch:
 
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/ci
+
 jobs:
   build:
     runs-on: ubicloud-standard-2
@@ -21,6 +24,9 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - id: meta
+        run: echo "tag=${{ env.IMAGE }}:${{ hashFiles('.github/docker/Dockerfile.ci', 'package.json', 'bun.lock') }}" >> "$GITHUB_OUTPUT"
 
       # Copy dependency manifests into Docker build context
       - run: cp package.json bun.lock .github/docker/
@@ -37,5 +43,6 @@ jobs:
           file: .github/docker/Dockerfile.ci
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/ci:latest
-            ghcr.io/${{ github.repository }}/ci:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ steps.meta.outputs.tag }}
